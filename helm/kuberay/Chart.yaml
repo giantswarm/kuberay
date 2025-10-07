@@ -14,7 +14,7 @@ keywords:
 - reinforcement learning
 - model serving
 home: https://github.com/ray-project/kuberay
-icon: https://github.com/ray-project/ray/raw/master/doc/source/images/ray_header_logo.png
+icon: https://s.giantswarm.io/app-icons/giantswarm/1/dark.svg
 annotations:
   application.giantswarm.io/team: planeteers
 
