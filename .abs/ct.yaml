@@ -1,0 +1,2 @@
+chart-repos:
+- kuberay-operator=oci://registry-1.docker.io/bitnamicharts/kuberay
