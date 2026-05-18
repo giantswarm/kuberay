@@ -108,14 +108,11 @@ func NewSessionCommand(cmdFactory cmdutil.Factory, streams genericiooptions.IOSt
 }
 
 func (options *SessionOptions) Complete(cmd *cobra.Command, args []string) error {
-	namespace, err := cmd.Flags().GetString("namespace")
+	namespace, _, err := options.cmdFactory.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return fmt.Errorf("failed to get namespace: %w", err)
 	}
 	options.namespace = namespace
-	if options.namespace == "" {
-		options.namespace = "default"
-	}
 
 	context, err := cmd.Flags().GetString("context")
 	if err != nil || context == "" {
@@ -194,11 +191,9 @@ func (options *SessionOptions) Run(ctx context.Context, factory cmdutil.Factory)
 	fmt.Println()
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
-			portforwardCmd := exec.Command("kubectl", kubectlArgs...)
+			portforwardCmd := exec.CommandContext(ctx, "kubectl", kubectlArgs...)
 			portforwardCmd.Stdout = options.ioStreams.Out
 			portforwardCmd.Stderr = options.ioStreams.ErrOut
 
@@ -212,7 +207,7 @@ func (options *SessionOptions) Run(ctx context.Context, factory cmdutil.Factory)
 			fmt.Printf("failed to port-forward: %v. Retrying in %v ...\n\n", err, reconnectDelay)
 			time.Sleep(reconnectDelay)
 		}
-	}()
+	})
 
 	wg.Wait()
 	return nil

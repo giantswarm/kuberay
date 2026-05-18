@@ -9,7 +9,7 @@ image:
   # -- Image repository.
   repository: rayproject/ray
   # -- Image tag.
-  tag: 2.46.0
+  tag: 2.52.0
   # -- Image pull policy.
   pullPolicy: IfNotPresent
 
@@ -59,7 +59,7 @@ common:
 head:
   # rayVersion determines the autoscaler's image version.
   # It should match the Ray version in the image of the containers.
-  # rayVersion: 2.46.0
+  # rayVersion: 2.52.0
 
   # If enableInTreeAutoscaling is true, the autoscaler sidecar will be added to the Ray head pod.
   # Ray autoscaler integration is supported only for Ray versions >= 1.11.0
@@ -98,6 +98,9 @@ head:
   serviceAccountName: ""
   restartPolicy: ""
 
+  # -- runtimeClassName is the name of the RuntimeClass to use to run the head Pod.
+  runtimeClassName: ""
+
   # containerEnv specifies environment variables for the Ray container,
   # Follows standard K8s container env schema.
   containerEnv: []
@@ -125,10 +128,13 @@ head:
     limits:
       cpu: "1"
       # To avoid out-of-memory issues, never allocate less than 2G memory for the Ray head.
-      memory: "2G"
+      memory: "5Gi"
     requests:
       cpu: "1"
-      memory: "2G"
+      memory: "5Gi"
+
+  # -- ResourceClaims to allocate with the head pod
+  resourceClaims: []
 
   # -- Extra annotations for head pod
   annotations: {}
@@ -204,12 +210,15 @@ worker:
   minReplicas: 1
 
   # -- The maximum number of replicas for the worker pod
-  maxReplicas: 3
+  maxReplicas: 5
 
   # -- Labels for the worker pod
   labels: {}
   serviceAccountName: ""
   restartPolicy: ""
+
+  # -- runtimeClassName is the name of the RuntimeClass to use to run the worker Pods.
+  runtimeClassName: ""
 
   # -- Init containers to add to the worker pod
   initContainers: []
@@ -240,10 +249,13 @@ worker:
   resources:
     limits:
       cpu: "1"
-      memory: "1G"
+      memory: "1Gi"
     requests:
       cpu: "1"
-      memory: "1G"
+      memory: "1Gi"
+
+  # -- ResourceClaims to allocate with the worker pod
+  resourceClaims: []
 
   # -- Extra annotations for worker pod
   annotations: {}
@@ -312,12 +324,15 @@ additionalWorkerGroups:
     minReplicas: 0
 
     # -- The maximum number of replicas for the additional worker pod
-    maxReplicas: 3
+    maxReplicas: 5
 
     # -- Labels for the additional worker pod
     labels: {}
     serviceAccountName: ""
     restartPolicy: ""
+
+    # -- runtimeClassName for this additional worker group. Empty string means default runtime.
+    runtimeClassName: ""
 
     # containerEnv specifies environment variables for the Ray container,
     # Follows standard K8s container env schema.
@@ -345,10 +360,13 @@ additionalWorkerGroups:
     resources:
       limits:
         cpu: 1
-        memory: "1G"
+        memory: "1Gi"
       requests:
         cpu: 1
-        memory: "1G"
+        memory: "1Gi"
+
+    # -- ResourceClaims to allocate with the additional worker pod
+    resourceClaims: []
 
     # -- Extra annotations for additional worker pod
     annotations: {}

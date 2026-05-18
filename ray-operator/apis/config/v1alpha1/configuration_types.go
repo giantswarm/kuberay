@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -65,6 +67,9 @@ type Configuration struct {
 	// to inject into every Head pod.
 	HeadSidecarContainers []corev1.Container `json:"headSidecarContainers,omitempty"`
 
+	// DefaultContainerEnvs specifies default environment variables to inject into all Ray containers
+	DefaultContainerEnvs []corev1.EnvVar `json:"defaultContainerEnvs,omitempty"`
+
 	// ReconcileConcurrency is the max concurrency for each reconciler.
 	ReconcileConcurrency int `json:"reconcileConcurrency,omitempty"`
 
@@ -85,8 +90,8 @@ type Configuration struct {
 	EnableMetrics bool `json:"enableMetrics,omitempty"`
 }
 
-func (config Configuration) GetDashboardClient(mgr manager.Manager) func(rayCluster *rayv1.RayCluster, url string) (dashboardclient.RayDashboardClientInterface, error) {
-	return utils.GetRayDashboardClientFunc(mgr, config.UseKubernetesProxy)
+func (config Configuration) GetDashboardClient(ctx context.Context, mgr manager.Manager) func(rayCluster *rayv1.RayCluster, url string) (dashboardclient.RayDashboardClientInterface, error) {
+	return utils.GetRayDashboardClientFunc(ctx, mgr, config.UseKubernetesProxy)
 }
 
 func (config Configuration) GetHttpProxyClient(mgr manager.Manager) func(hostIp, podNamespace, podName string, port int) utils.RayHttpProxyClientInterface {

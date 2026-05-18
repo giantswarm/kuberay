@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated Chart annotations for OCI repositories.
+- Synced fork with upstream `ray-project/kuberay` master (through `v1.6.1`).
+- Synced CRDs in `helm/kuberay/crds/` with upstream (`helm-chart/kuberay-operator/crds/`), including the new `ray.io_raycronjobs.yaml`.
 
 ## [1.0.0] - 2025-10-07
 

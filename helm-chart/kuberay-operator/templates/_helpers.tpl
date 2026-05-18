@@ -104,6 +104,34 @@ FeatureGates
 {{- include "kuberay-operator.fullname" . -}}
 {{- end -}}
 
+{{/*
+Validate operator configuration values.
+This template validates reconcileConcurrency, kubeClient.qps, and kubeClient.burst.
+It should be called early in the deployment to ensure invalid values are caught.
+*/}}
+{{- define "kuberay-operator.validateConfig" -}}
+{{- if hasKey .Values "reconcileConcurrency" }}
+{{- $rc := toString .Values.reconcileConcurrency }}
+{{- if not (regexMatch "^[1-9][0-9]*$" $rc) }}
+{{- fail (printf "values.reconcileConcurrency must be a positive integer, got %q" $rc) }}
+{{- end }}
+{{- end }}
+{{- if hasKey .Values "kubeClient" }}
+{{- if hasKey .Values.kubeClient "qps" }}
+{{- $qps := toString .Values.kubeClient.qps }}
+{{- if not (regexMatch "^[0-9]+(\\.[0-9]+)?$" $qps) }}
+{{- fail (printf "values.kubeClient.qps must be a valid float number, got %q" $qps) }}
+{{- end }}
+{{- end }}
+{{- if hasKey .Values.kubeClient "burst" }}
+{{- $burst := toString .Values.kubeClient.burst }}
+{{- if not (regexMatch "^[0-9]+$" $burst) }}
+{{- fail (printf "values.kubeClient.burst must be a non-negative integer, got %q" $burst) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- /* Create the name of the leader election role to use. */ -}}
 {{- define "kuberay-operator.leaderElectionRole.name" -}}
 {{- include "kuberay-operator.fullname" . -}}-leader-election
@@ -119,14 +147,6 @@ Create a template to ensure consistency for Role and ClusterRole.
 */}}
 {{- define "role.consistentRules" -}}
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - endpoints
-  verbs:
-  - get
-  - list
-  - watch
 - apiGroups:
   - ""
   resources:
@@ -172,6 +192,15 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - secrets
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - serviceaccounts
   verbs:
   - create
@@ -210,6 +239,14 @@ rules:
   - list
   - update
 - apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - extensions
   - networking.k8s.io
   resources:
@@ -220,6 +257,17 @@ rules:
   - get
   - list
   - patch
+  - update
+  - watch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gateways
+  - httproutes
+  verbs:
+  - create
+  - get
+  - list
   - update
   - watch
 - apiGroups:
@@ -234,6 +282,7 @@ rules:
   - ray.io
   resources:
   - rayclusters
+  - raycronjobs
   - rayjobs
   - rayservices
   verbs:
@@ -248,6 +297,7 @@ rules:
   - ray.io
   resources:
   - rayclusters/finalizers
+  - raycronjobs/finalizers
   - rayjobs/finalizers
   - rayservices/finalizers
   verbs:
@@ -256,6 +306,7 @@ rules:
   - ray.io
   resources:
   - rayclusters/status
+  - raycronjobs/status
   - rayjobs/status
   - rayservices/status
   verbs:

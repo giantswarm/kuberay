@@ -8,7 +8,7 @@ A Helm chart for deploying the Kuberay operator on Kubernetes.
 
 ## Introduction
 
-This document provides instructions to install both CRDs (RayCluster, RayJob, RayService) and
+This document provides instructions to install both CRDs (RayCluster, RayJob, RayService, RayCronJob) and
 KubeRay operator with a Helm chart.
 
 ## Prerequisites
@@ -135,7 +135,7 @@ spec:
 ...
 ```
 
-[existing CI tests]: https://github.com/ray-project/kuberay/blob/master/.github/workflows/helm-lint.yaml
+[existing CI tests]: https://github.com/ray-project/kuberay/blob/master/.github/workflows/helm.yaml
 [Argo CD]: https://argoproj.github.io
 [this issue]: https://github.com/prometheus-operator/prometheus-operator/issues/4439
 [this document]: https://helm.sh/docs/chart_best_practices/custom_resource_definitions/
@@ -147,11 +147,17 @@ spec:
 | nameOverride | string | `"kuberay-operator"` | String to partially override release name. |
 | fullnameOverride | string | `"kuberay-operator"` | String to fully override release name. |
 | componentOverride | string | `"kuberay-operator"` | String to override component name. |
+| replicas | int | `1` | Number of replicas for the KubeRay operator Deployment. |
 | image.repository | string | `"quay.io/kuberay/operator"` | Image repository. |
 | image.tag | string | `"nightly"` | Image tag. |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
+| imagePullSecrets | list | `[]` | Secrets with credentials to pull images from a private registry |
+| nodeSelector | object | `{}` | Restrict to run on particular nodes. |
+| priorityClassName | string | `""` | Pod priorityClassName |
 | labels | object | `{}` | Extra labels. |
 | annotations | object | `{}` | Extra annotations. |
+| affinity | object | `{}` | Pod affinity |
+| tolerations | list | `[]` | Pod tolerations |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | serviceAccount.name | string | `"kuberay-operator"` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | logging.stdoutEncoder | string | `"json"` | Log encoder to use for stdout (one of `json` or `console`). |
@@ -161,10 +167,20 @@ spec:
 | logging.sizeLimit | string | `""` | EmptyDir volume size limit for kuberay-operator log file. |
 | batchScheduler.enabled | bool | `false` |  |
 | batchScheduler.name | string | `""` |  |
+| configuration.enabled | bool | `false` | Whether to enable the configuration feature. If enabled, a ConfigMap will be created and mounted to the operator. When enabled, flag-based configuration values (leaderElectionEnabled, metrics.enabled, kubeClient.qps, etc.) will be injected into the ConfigMap. The operator will use the ConfigMap and ignore command-line flags. |
+| configuration.defaultContainerEnvs | list | `[]` | Default environment variables to inject into all Ray containers in all RayCluster CRs. This allows user to set feature flags across all Ray pods. Example: defaultContainerEnvs: - name: RAY_enable_open_telemetry   value: "true" - name: RAY_metric_cardinality_level   value: "recommended" |
+| configuration.headSidecarContainers | list | `[]` | Sidecar containers to inject into every Ray head pod. Example: headSidecarContainers: - name: fluentbit   image: fluent/fluent-bit:1.9 |
+| configuration.workerSidecarContainers | list | `[]` | Sidecar containers to inject into every Ray worker pod. Example: workerSidecarContainers: - name: fluentbit   image: fluent/fluent-bit:1.9 |
 | featureGates[0].name | string | `"RayClusterStatusConditions"` |  |
 | featureGates[0].enabled | bool | `true` |  |
 | featureGates[1].name | string | `"RayJobDeletionPolicy"` |  |
-| featureGates[1].enabled | bool | `false` |  |
+| featureGates[1].enabled | bool | `true` |  |
+| featureGates[2].name | string | `"RayMultiHostIndexing"` |  |
+| featureGates[2].enabled | bool | `true` |  |
+| featureGates[3].name | string | `"RayServiceIncrementalUpgrade"` |  |
+| featureGates[3].enabled | bool | `false` |  |
+| featureGates[4].name | string | `"RayCronJob"` |  |
+| featureGates[4].enabled | bool | `false` |  |
 | metrics.enabled | bool | `true` | Whether KubeRay operator should emit control plane metrics. |
 | metrics.serviceMonitor.enabled | bool | `false` | Enable a prometheus ServiceMonitor |
 | metrics.serviceMonitor.interval | string | `"30s"` | Prometheus ServiceMonitor interval |

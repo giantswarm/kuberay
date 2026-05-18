@@ -17,9 +17,11 @@ package ray
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"math"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -339,7 +341,7 @@ func setupTest(t *testing.T) {
 			},
 			WorkerGroupSpecs: []rayv1.WorkerGroupSpec{
 				{
-					Replicas:    ptr.To(expectReplicaNum),
+					Replicas:    new(expectReplicaNum),
 					MinReplicas: ptr.To[int32](0),
 					MaxReplicas: ptr.To[int32](10000),
 					NumOfHosts:  expectNumOfHostNum,
@@ -649,7 +651,7 @@ func TestReconcile_RandomDelete_OK(t *testing.T) {
 
 	require.NoError(t, err, "Fail to get pod list")
 
-	assert.Equal(t, len(testPods), len(podList.Items), "Init pod list len is wrong")
+	assert.Len(t, podList.Items, len(testPods), "Init pod list len is wrong")
 	testRayClusterReconciler := &RayClusterReconciler{
 		Client:                     fakeClient,
 		Recorder:                   &record.FakeRecorder{},
@@ -971,7 +973,7 @@ func TestReconcile_PodEvicted_DiffLess0_OK(t *testing.T) {
 			err := fakeClient.List(ctx, &podList, client.InNamespace(namespaceStr))
 
 			require.NoError(t, err, "Fail to get pod list")
-			assert.Equal(t, len(testPods), len(podList.Items), "Init pod list len is wrong")
+			assert.Len(t, podList.Items, len(testPods), "Init pod list len is wrong")
 
 			// Simulate head pod get evicted.
 			podList.Items[0].Spec.RestartPolicy = tc.restartPolicy
@@ -1782,7 +1784,7 @@ func TestCalculateStatusWithoutDesiredReplicas(t *testing.T) {
 func TestCalculateStatusWithSuspendedWorkerGroups(t *testing.T) {
 	setupTest(t)
 
-	testRayCluster.Spec.WorkerGroupSpecs[0].Suspend = ptr.To(true)
+	testRayCluster.Spec.WorkerGroupSpecs[0].Suspend = new(true)
 	testRayCluster.Spec.WorkerGroupSpecs[0].MinReplicas = ptr.To[int32](100)
 	testRayCluster.Spec.WorkerGroupSpecs[0].MaxReplicas = ptr.To[int32](100)
 	testRayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Resources.Requests = corev1.ResourceList{
@@ -2492,7 +2494,7 @@ func Test_ShouldDeletePod(t *testing.T) {
 			pod.Status.ContainerStatuses = testCase.containerStatus
 
 			shouldDelete, _ := shouldDeletePod(pod, rayv1.HeadNode)
-			assert.EqualValues(
+			assert.Equal(
 				t, shouldDelete, testCase.shouldDelete,
 				"unexpected value of shouldDelete",
 			)
@@ -2852,7 +2854,7 @@ func Test_RedisCleanup(t *testing.T) {
 				// Simulate the Job succeeded.
 				job := jobList.Items[0]
 				job.Status.Succeeded = 1
-				job.Status.Conditions = []batchv1.JobCondition{{Type: batchv1.JobComplete, Status: corev1.ConditionTrue}}
+				job.Status.Conditions = []batchv1.JobCondition{{Type: batchv1.JobSuccessCriteriaMet, Status: corev1.ConditionTrue}, {Type: batchv1.JobComplete, Status: corev1.ConditionTrue}}
 				err = fakeClient.Status().Update(ctx, &job)
 				require.NoError(t, err, "Fail to update Job status")
 
@@ -2876,7 +2878,7 @@ func TestReconcile_Replicas_Optional(t *testing.T) {
 	assert.Len(t, testRayCluster.Spec.WorkerGroupSpecs, 1, "This test assumes only one worker group.")
 
 	// Disable autoscaling so that the random Pod deletion is enabled.
-	testRayCluster.Spec.EnableInTreeAutoscaling = ptr.To(false)
+	testRayCluster.Spec.EnableInTreeAutoscaling = new(false)
 	testRayCluster.Spec.WorkerGroupSpecs[0].ScaleStrategy.WorkersToDelete = []string{}
 
 	tests := []struct {
@@ -2963,13 +2965,15 @@ func TestReconcile_Replicas_Optional(t *testing.T) {
 func TestReconcile_Multihost_Replicas(t *testing.T) {
 	setupTest(t)
 
+	features.SetFeatureGateDuringTest(t, features.RayMultiHostIndexing, false)
+
 	// This test makes some assumptions about the testRayCluster object.
 	// (1) 1 workerGroup (2) disable autoscaling
 	assert.Len(t, testRayCluster.Spec.WorkerGroupSpecs, 1, "This test assumes only one worker group.")
 
 	// Disable autoscaling so that the random Pod deletion is enabled.
 	// Set `NumOfHosts` to 4 to specify multi-host group
-	testRayCluster.Spec.EnableInTreeAutoscaling = ptr.To(false)
+	testRayCluster.Spec.EnableInTreeAutoscaling = new(false)
 	testRayCluster.Spec.WorkerGroupSpecs[0].ScaleStrategy.WorkersToDelete = []string{}
 	testRayCluster.Spec.WorkerGroupSpecs[0].NumOfHosts = 4
 
@@ -3066,7 +3070,7 @@ func TestReconcile_NumOfHosts(t *testing.T) {
 
 	// Disable autoscaling so that the random Pod deletion is enabled.
 	// Set `Replicas` to 1 and clear `WorkersToDelete`
-	testRayCluster.Spec.EnableInTreeAutoscaling = ptr.To(false)
+	testRayCluster.Spec.EnableInTreeAutoscaling = new(false)
 	testRayCluster.Spec.WorkerGroupSpecs[0].ScaleStrategy.WorkersToDelete = []string{}
 	testRayCluster.Spec.WorkerGroupSpecs[0].Replicas = ptr.To[int32](1)
 
@@ -3388,15 +3392,15 @@ func Test_ReconcileManagedBy(t *testing.T) {
 			shouldReconcile: true,
 		},
 		{
-			managedBy: ptr.To(""),
+			managedBy: new(""),
 			name:      "ManagedBy field empty",
 		},
 		{
-			managedBy: ptr.To(MultiKueueController),
+			managedBy: new(MultiKueueController),
 			name:      "ManagedBy field to external allowed controller",
 		},
 		{
-			managedBy: ptr.To("controller.com/invalid"),
+			managedBy: new("controller.com/invalid"),
 			name:      "ManagedBy field to external not allowed controller",
 		},
 	}
@@ -3405,7 +3409,7 @@ func Test_ReconcileManagedBy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
 			cluster := testRayCluster.DeepCopy()
-			cluster.Spec.EnableInTreeAutoscaling = ptr.To(false)
+			cluster.Spec.EnableInTreeAutoscaling = new(false)
 			cluster.Status = rayv1.RayClusterStatus{}
 			cluster.Spec.ManagedBy = tc.managedBy
 			runtimeObjects := []runtime.Object{cluster}
@@ -3548,5 +3552,341 @@ func TestSetDefaults(t *testing.T) {
 	assert.Equal(t, map[string]string{}, cluster.Spec.HeadGroupSpec.RayStartParams)
 	for i := range cluster.Spec.WorkerGroupSpecs {
 		assert.Equal(t, map[string]string{}, cluster.Spec.WorkerGroupSpecs[i].RayStartParams)
+	}
+}
+
+func TestReconcile_AuthSecret(t *testing.T) {
+	setupTest(t)
+
+	testRayCluster.Spec.AuthOptions = &rayv1.AuthOptions{Mode: rayv1.AuthModeToken}
+
+	fakeClient := clientFake.NewClientBuilder().WithRuntimeObjects(testPods...).Build()
+	ctx := context.Background()
+
+	secretNamespacedName := types.NamespacedName{
+		Name:      instanceName,
+		Namespace: namespaceStr,
+	}
+
+	secret := corev1.Secret{}
+	err := fakeClient.Get(ctx, secretNamespacedName, &secret)
+	assert.True(t, k8serrors.IsNotFound(err), "Secret should not exist yet")
+
+	testRayClusterReconciler := &RayClusterReconciler{
+		Client:                     fakeClient,
+		Recorder:                   &record.FakeRecorder{},
+		Scheme:                     scheme.Scheme,
+		rayClusterScaleExpectation: expectations.NewRayClusterScaleExpectation(fakeClient),
+	}
+
+	err = testRayClusterReconciler.reconcileAuthSecret(ctx, testRayCluster)
+	require.NoError(t, err, "Fail to reconcile auth token secret")
+
+	err = fakeClient.Get(ctx, secretNamespacedName, &secret)
+	require.NoError(t, err, "Fail to get auth Secret after reconciliation")
+
+	decodedBytes, err := base64.StdEncoding.DecodeString(secret.StringData["auth_token"])
+	require.NoError(t, err)
+
+	assert.Len(t, decodedBytes, 32)
+}
+
+func TestReconcile_AuthSecret_SkipWhenK8sTokenAuthEnabled(t *testing.T) {
+	setupTest(t)
+
+	testRayCluster.Spec.AuthOptions = &rayv1.AuthOptions{
+		Mode:               rayv1.AuthModeToken,
+		EnableK8sTokenAuth: new(true),
+	}
+
+	fakeClient := clientFake.NewClientBuilder().WithRuntimeObjects(testPods...).Build()
+	ctx := context.Background()
+
+	secretNamespacedName := types.NamespacedName{
+		Name:      instanceName,
+		Namespace: namespaceStr,
+	}
+
+	testRayClusterReconciler := &RayClusterReconciler{
+		Client:                     fakeClient,
+		Recorder:                   &record.FakeRecorder{},
+		Scheme:                     scheme.Scheme,
+		rayClusterScaleExpectation: expectations.NewRayClusterScaleExpectation(fakeClient),
+	}
+
+	err := testRayClusterReconciler.reconcileAuthSecret(ctx, testRayCluster)
+	require.NoError(t, err, "Fail to reconcile auth secret")
+
+	secret := corev1.Secret{}
+	err = fakeClient.Get(ctx, secretNamespacedName, &secret)
+	assert.True(t, k8serrors.IsNotFound(err), "Secret should not be created when K8s token auth is enabled")
+}
+
+func TestReconcile_PodsWithAuthToken(t *testing.T) {
+	setupTest(t)
+
+	testRayCluster.Spec.AuthOptions = &rayv1.AuthOptions{Mode: rayv1.AuthModeToken}
+
+	fakeClient := clientFake.NewClientBuilder().WithRuntimeObjects().Build()
+	ctx := context.Background()
+
+	testRayClusterReconciler := &RayClusterReconciler{
+		Client:                     fakeClient,
+		Recorder:                   &record.FakeRecorder{},
+		Scheme:                     scheme.Scheme,
+		rayClusterScaleExpectation: expectations.NewRayClusterScaleExpectation(fakeClient),
+	}
+
+	err := testRayClusterReconciler.reconcilePods(ctx, testRayCluster)
+	require.NoError(t, err, "Fail to reconcile Pods")
+
+	podList := corev1.PodList{}
+	err = fakeClient.List(ctx, &podList, client.InNamespace(namespaceStr))
+	require.NoError(t, err, "Fail to get pod list")
+	numAllPods := len(podList.Items)
+	expectedNumPods := int(*testRayCluster.Spec.WorkerGroupSpecs[0].Replicas) + 1
+	assert.Equal(t, expectedNumPods, numAllPods, "unexpected number of pods")
+
+	// Assert that all Pods have RAY_AUTH_MODE and RAY_AUTH_TOKEN environment variables
+	for _, pod := range podList.Items {
+		authTokenEnvFound := false
+		authModeEnvFound := false
+		for _, env := range pod.Spec.Containers[utils.RayContainerIndex].Env {
+			if reflect.DeepEqual(corev1.EnvVar{Name: utils.RAY_AUTH_MODE_ENV_VAR, Value: string(rayv1.AuthModeToken)}, env) {
+				authModeEnvFound = true
+				continue
+			}
+
+			expectedSecretValue := corev1.EnvVar{
+				Name: utils.RAY_AUTH_TOKEN_ENV_VAR,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: testRayCluster.Name},
+						Key:                  utils.RAY_AUTH_TOKEN_SECRET_KEY,
+					},
+				},
+			}
+			if reflect.DeepEqual(expectedSecretValue, env) {
+				authTokenEnvFound = true
+				continue
+			}
+		}
+
+		assert.True(t, authTokenEnvFound, "Auth token env vars not found")
+		assert.True(t, authModeEnvFound, "Auth mode env vars not found")
+	}
+}
+
+func TestShouldRecreatePodsForUpgrade(t *testing.T) {
+	setupTest(t)
+	ctx := context.Background()
+
+	RayClusterHash, err := utils.GenerateHashWithoutReplicasAndWorkersToDelete(testRayCluster.Spec)
+	require.NoError(t, err, "Failed to generate RayCluster spec hash")
+
+	createPodWithHash := func(name string, nodeType rayv1.RayNodeType, groupName string, templateHash string, kuberayVersion string) *corev1.Pod {
+		return &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespaceStr,
+				Labels: map[string]string{
+					utils.RayNodeLabelKey:      "yes",
+					utils.RayClusterLabelKey:   instanceName,
+					utils.RayNodeTypeLabelKey:  string(nodeType),
+					utils.RayNodeGroupLabelKey: groupName,
+				},
+				Annotations: map[string]string{
+					utils.UpgradeStrategyRecreateHashKey: templateHash,
+					utils.KubeRayVersion:                 kuberayVersion,
+				},
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "ray-head", Image: "rayproject/ray:latest"},
+				},
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodRunning},
+		}
+	}
+
+	tests := []struct {
+		name             string
+		upgradeStrategy  *rayv1.RayClusterUpgradeStrategy
+		pods             []runtime.Object
+		expectedRecreate bool
+	}{
+		{
+			name:             "No upgrade strategy",
+			upgradeStrategy:  nil,
+			pods:             testPods,
+			expectedRecreate: false,
+		},
+		{
+			name:             "Upgrade strategy type is nil",
+			upgradeStrategy:  &rayv1.RayClusterUpgradeStrategy{Type: nil},
+			pods:             testPods,
+			expectedRecreate: false,
+		},
+		{
+			name: "Upgrade strategy type is None",
+			upgradeStrategy: &rayv1.RayClusterUpgradeStrategy{
+				Type: ptr.To(rayv1.RayClusterUpgradeNone),
+			},
+			pods:             testPods,
+			expectedRecreate: false,
+		},
+		{
+			name: "Recreate strategy but no pods exist",
+			upgradeStrategy: &rayv1.RayClusterUpgradeStrategy{
+				Type: ptr.To(rayv1.RayClusterRecreate),
+			},
+			pods:             []runtime.Object{},
+			expectedRecreate: false,
+		},
+		{
+			name: "Recreate strategy with matching RayClusterHash",
+			upgradeStrategy: &rayv1.RayClusterUpgradeStrategy{
+				Type: ptr.To(rayv1.RayClusterRecreate),
+			},
+			pods: []runtime.Object{
+				createPodWithHash("head-pod", rayv1.HeadNode, headGroupNameStr, RayClusterHash, utils.KUBERAY_VERSION),
+			},
+			expectedRecreate: false,
+		},
+		{
+			name: "Recreate strategy with mismatched RayClusterHash",
+			upgradeStrategy: &rayv1.RayClusterUpgradeStrategy{
+				Type: ptr.To(rayv1.RayClusterRecreate),
+			},
+			pods: []runtime.Object{
+				createPodWithHash("head-pod", rayv1.HeadNode, headGroupNameStr, "old-head-hash", utils.KUBERAY_VERSION),
+			},
+			expectedRecreate: true,
+		},
+		{
+			name: "Recreate strategy with different KubeRay version",
+			upgradeStrategy: &rayv1.RayClusterUpgradeStrategy{
+				Type: ptr.To(rayv1.RayClusterRecreate),
+			},
+			pods: []runtime.Object{
+				createPodWithHash("head-pod", rayv1.HeadNode, headGroupNameStr, "old-hash", "v1.0.0"),
+			},
+			expectedRecreate: false,
+		},
+		{
+			name: "Recreate strategy with same KubeRay version but different hash",
+			upgradeStrategy: &rayv1.RayClusterUpgradeStrategy{
+				Type: ptr.To(rayv1.RayClusterRecreate),
+			},
+			pods: []runtime.Object{
+				createPodWithHash("head-pod", rayv1.HeadNode, headGroupNameStr, "old-hash", utils.KUBERAY_VERSION),
+			},
+			expectedRecreate: true,
+		},
+		{
+			name: "Recreate strategy with same KubeRay version and same hash",
+			upgradeStrategy: &rayv1.RayClusterUpgradeStrategy{
+				Type: ptr.To(rayv1.RayClusterRecreate),
+			},
+			pods: []runtime.Object{
+				createPodWithHash("head-pod", rayv1.HeadNode, headGroupNameStr, RayClusterHash, utils.KUBERAY_VERSION),
+			},
+			expectedRecreate: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cluster := testRayCluster.DeepCopy()
+			cluster.Spec.UpgradeStrategy = tc.upgradeStrategy
+
+			fakeClient := clientFake.NewClientBuilder().WithRuntimeObjects(tc.pods...).Build()
+			testRayClusterReconciler := &RayClusterReconciler{
+				Client:   fakeClient,
+				Scheme:   scheme.Scheme,
+				Recorder: &record.FakeRecorder{},
+			}
+
+			result := testRayClusterReconciler.shouldRecreatePodsForUpgrade(ctx, cluster)
+			assert.Equal(t, tc.expectedRecreate, result)
+		})
+	}
+}
+
+func TestReconcileAuthSecret_WithSecretName(t *testing.T) {
+	setupTest(t)
+
+	providedSecretName := "provided-secret"
+	testRayCluster.Spec.AuthOptions = &rayv1.AuthOptions{
+		Mode:       rayv1.AuthModeToken,
+		SecretName: &providedSecretName,
+	}
+
+	fakeClient := clientFake.NewClientBuilder().Build()
+	ctx := context.Background()
+
+	testRayClusterReconciler := &RayClusterReconciler{
+		Client:                     fakeClient,
+		Recorder:                   &record.FakeRecorder{},
+		Scheme:                     scheme.Scheme,
+		rayClusterScaleExpectation: expectations.NewRayClusterScaleExpectation(fakeClient),
+	}
+
+	err := testRayClusterReconciler.reconcileAuthSecret(ctx, testRayCluster)
+	require.NoError(t, err)
+
+	// Verify no secret is created.
+	secretList := corev1.SecretList{}
+	err = fakeClient.List(ctx, &secretList)
+	require.NoError(t, err)
+	assert.Empty(t, secretList.Items, "No secret should be created when SecretName is provided")
+}
+
+func TestReconcilePodsWithAuthTokenSecretName(t *testing.T) {
+	setupTest(t)
+
+	providedSecretName := "provided-secret"
+	testRayCluster.Spec.AuthOptions = &rayv1.AuthOptions{
+		Mode:       rayv1.AuthModeToken,
+		SecretName: &providedSecretName,
+	}
+
+	fakeClient := clientFake.NewClientBuilder().Build()
+	ctx := context.Background()
+
+	testRayClusterReconciler := &RayClusterReconciler{
+		Client:                     fakeClient,
+		Recorder:                   &record.FakeRecorder{},
+		Scheme:                     scheme.Scheme,
+		rayClusterScaleExpectation: expectations.NewRayClusterScaleExpectation(fakeClient),
+	}
+
+	err := testRayClusterReconciler.reconcilePods(ctx, testRayCluster)
+	require.NoError(t, err, "Fail to reconcile Pods")
+
+	podList := corev1.PodList{}
+	err = fakeClient.List(ctx, &podList, client.InNamespace(namespaceStr))
+	require.NoError(t, err, "Fail to get pod list")
+	assert.NotEmpty(t, podList.Items, "expected pods to be created")
+
+	// Assert that all Pods have RAY_AUTH_TOKEN environment variable referencing providedSecretName
+	for _, pod := range podList.Items {
+		authTokenEnvFound := false
+		for _, env := range pod.Spec.Containers[utils.RayContainerIndex].Env {
+			expectedSecretValue := corev1.EnvVar{
+				Name: utils.RAY_AUTH_TOKEN_ENV_VAR,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: providedSecretName},
+						Key:                  utils.RAY_AUTH_TOKEN_SECRET_KEY,
+					},
+				},
+			}
+			if reflect.DeepEqual(expectedSecretValue, env) {
+				authTokenEnvFound = true
+				break
+			}
+		}
+		assert.True(t, authTokenEnvFound, "Auth token env var with provided secret name not found")
 	}
 }
