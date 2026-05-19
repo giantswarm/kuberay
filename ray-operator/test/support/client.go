@@ -3,11 +3,10 @@ package support
 import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	_ "k8s.io/client-go/plugin/pkg/client/auth" // Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.) to ensure that exec-entrypoint and run can make use of them
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	gatewayclient "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 
 	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
 )
@@ -17,6 +16,7 @@ type Client interface {
 	Ray() rayclient.Interface
 	Dynamic() dynamic.Interface
 	Config() rest.Config
+	Gateway() gatewayclient.Interface
 }
 
 type testClient struct {
@@ -24,6 +24,7 @@ type testClient struct {
 	ray     rayclient.Interface
 	dynamic dynamic.Interface
 	config  rest.Config
+	gateway gatewayclient.Interface
 }
 
 var _ Client = (*testClient)(nil)
@@ -42,6 +43,10 @@ func (t *testClient) Dynamic() dynamic.Interface {
 
 func (t *testClient) Config() rest.Config {
 	return t.config
+}
+
+func (t *testClient) Gateway() gatewayclient.Interface {
+	return t.gateway
 }
 
 func newTestClient() (Client, error) {
@@ -68,10 +73,16 @@ func newTestClient() (Client, error) {
 		return nil, err
 	}
 
+	gatewayClient, err := gatewayclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &testClient{
 		core:    kubeClient,
 		ray:     rayClient,
 		dynamic: dynamicClient,
 		config:  *cfg,
+		gateway: gatewayClient,
 	}, nil
 }

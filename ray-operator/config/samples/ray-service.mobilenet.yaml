@@ -16,7 +16,7 @@ spec:
             ray_actor_options:
               num_cpus: 1
   rayClusterConfig:
-    rayVersion: '2.46.0' # should match the Ray version in the image of the containers
+    rayVersion: "2.46.0" # should match the Ray version in the image of the containers
     ######################headGroupSpecs#################################
     # Ray head pod template.
     headGroupSpec:
@@ -29,11 +29,11 @@ spec:
             image: rayproject/ray-ml:2.46.0.0e19ea-py39-cpu
             resources:
               limits:
-                cpu: 1
-                memory: 4Gi
+                cpu: "1"
+                memory: "5Gi"
               requests:
-                cpu: 1
-                memory: 4Gi
+                cpu: "1"
+                memory: "4Gi"
     workerGroupSpecs:
     # the pod replicas in this group typed worker
     - replicas: 1
@@ -50,8 +50,8 @@ spec:
             image: rayproject/ray-ml:2.46.0.0e19ea-py39-cpu
             resources:
               limits:
-                cpu: 1
-                memory: 4Gi
+                cpu: "1"
+                memory: "4Gi"
               requests:
-                cpu: 1
-                memory: 4Gi
+                cpu: "1"
+                memory: "4Gi"

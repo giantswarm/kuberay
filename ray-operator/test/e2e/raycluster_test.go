@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	"github.com/ray-project/kuberay/ray-operator/controllers/ray/utils"
@@ -63,7 +62,7 @@ func TestRayClusterManagedBy(t *testing.T) {
 		rayCluster, err = test.Client().Ray().RayV1().RayClusters(namespace.Name).Apply(test.Ctx(), rayClusterAC, TestApplyOptions)
 		g.Expect(err).To(HaveOccurred())
 		g.Eventually(RayCluster(test, *rayClusterAC.Namespace, *rayClusterAC.Name)).
-			Should(WithTransform(RayClusterManagedBy, Equal(ptr.To("kueue.x-k8s.io/multikueue"))))
+			Should(WithTransform(RayClusterManagedBy, Equal(new("kueue.x-k8s.io/multikueue"))))
 	})
 
 	test.T().Run("Failed creation of cluster, managed by external non supported controller", func(t *testing.T) {
@@ -207,4 +206,60 @@ func TestRayClusterScalingDown(t *testing.T) {
 		_, err := test.Client().Core().CoreV1().Pods(namespace.Name).Patch(test.Ctx(), pod.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
 		g.Expect(err).NotTo(HaveOccurred(), "Failed to remove finalizer from pod %s/%s", namespace.Name, pod.Name)
 	}
+}
+
+func TestRayClusterUpgradeStrategy(t *testing.T) {
+	test := With(t)
+	g := NewWithT(t)
+
+	namespace := test.NewTestNamespace()
+
+	rayClusterAC := rayv1ac.RayCluster("raycluster-upgrade-recreate", namespace.Name).WithSpec(NewRayClusterSpec())
+	rayClusterAC.Spec.UpgradeStrategy = rayv1ac.RayClusterUpgradeStrategy().WithType(rayv1.RayClusterRecreate)
+
+	rayCluster, err := test.Client().Ray().RayV1().RayClusters(namespace.Name).Apply(test.Ctx(), rayClusterAC, TestApplyOptions)
+	g.Expect(err).NotTo(HaveOccurred())
+	LogWithTimestamp(test.T(), "Created RayCluster %s/%s successfully", namespace.Name, rayCluster.Name)
+
+	LogWithTimestamp(test.T(), "Waiting for RayCluster %s/%s to become ready", namespace.Name, rayCluster.Name)
+	g.Eventually(RayCluster(test, rayCluster.Namespace, rayCluster.Name), TestTimeoutMedium).
+		Should(WithTransform(RayClusterState, Equal(rayv1.Ready)))
+
+	headPod, err := GetHeadPod(test, rayCluster)
+	g.Expect(err).NotTo(HaveOccurred())
+	initialHeadPodName := headPod.Name
+	initialHeadPodHash := headPod.Annotations[utils.UpgradeStrategyRecreateHashKey]
+
+	workerPods, err := GetWorkerPods(test, rayCluster)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(workerPods).To(HaveLen(1))
+
+	LogWithTimestamp(test.T(), "Updating RayCluster %s/%s rayVersion and container image to trigger upgrade", rayCluster.Namespace, rayCluster.Name)
+	// Update rayVersion and container image to trigger Recreate upgrade
+	rayClusterAC.Spec.WithRayVersion("2.51.0")
+	rayClusterAC.Spec.HeadGroupSpec.Template.Spec.Containers[0].WithImage("rayproject/ray:2.51.0")
+	rayClusterAC.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].WithImage("rayproject/ray:2.51.0")
+	rayCluster, err = test.Client().Ray().RayV1().RayClusters(namespace.Name).Apply(test.Ctx(), rayClusterAC, TestApplyOptions)
+	g.Expect(err).NotTo(HaveOccurred())
+	LogWithTimestamp(test.T(), "Updated RayCluster pod template")
+
+	LogWithTimestamp(test.T(), "Waiting for new head pod to be running after recreate")
+	g.Eventually(func() bool {
+		newHeadPod, err := GetHeadPod(test, rayCluster)
+		if err != nil {
+			return false
+		}
+		return newHeadPod.Name != initialHeadPodName && newHeadPod.Status.Phase == corev1.PodRunning
+	}, TestTimeoutMedium).Should(BeTrue())
+
+	newHeadPod, err := GetHeadPod(test, rayCluster)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(newHeadPod.Name).NotTo(Equal(initialHeadPodName))
+
+	newHeadPodHash := newHeadPod.Annotations[utils.UpgradeStrategyRecreateHashKey]
+	g.Expect(newHeadPodHash).NotTo(Equal(initialHeadPodHash))
+
+	newWorkerPods, err := GetWorkerPods(test, rayCluster)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(newWorkerPods).To(HaveLen(1))
 }

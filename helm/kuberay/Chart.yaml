@@ -17,3 +17,5 @@ home: https://github.com/ray-project/kuberay
 icon: https://s.giantswarm.io/app-icons/giantswarm/1/dark.svg
 annotations:
   application.giantswarm.io/team: planeteers
+  io.giantswarm.application.audience: all
+  io.giantswarm.application.team: planeteers
