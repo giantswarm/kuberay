@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-19
+
 ### Changed
 
 - Updated Chart annotations for OCI repositories.
@@ -25,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Create first GS artifact.
 
-[Unreleased]: https://github.com/giantswarm/kuberay/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/giantswarm/kuberay/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/giantswarm/kuberay/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/giantswarm/kuberay/releases/tag/v1.0.0
 
