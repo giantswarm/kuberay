@@ -1,17 +1,7 @@
-export const ALL_NAMESPACES = "all";
+import { RuntimeConfig, defaultConfig, apiVersion } from "./config-defaults";
 
-interface RuntimeConfig {
-  url: string;
-}
-
-export const apiVersion = "v2";
-
-export const defaultConfig: RuntimeConfig = {
-  url:
-    apiVersion === "v2"
-      ? "http://localhost:31888/apis/ray.io/v1"
-      : "http://localhost:31888/apis/v1",
-};
+export { defaultConfig, apiVersion };
+export type { RuntimeConfig };
 
 let runtimeConfig: RuntimeConfig | null = null;
 
@@ -23,9 +13,28 @@ export async function fetchRuntimeConfig(): Promise<RuntimeConfig> {
   try {
     const response = await fetch("/api/config");
     if (response.ok) {
-      const data = await response.json();
+      const data: RuntimeConfig = await response.json();
       runtimeConfig = {
-        url: data.apiUrl || defaultConfig.url,
+        apiserver: {
+          domain: data.apiserver?.domain || defaultConfig.apiserver.domain,
+          rayApiPath:
+            data.apiserver?.rayApiPath || defaultConfig.apiserver.rayApiPath,
+          coreApiPath:
+            data.apiserver?.coreApiPath !== undefined
+              ? data.apiserver.coreApiPath
+              : defaultConfig.apiserver.coreApiPath,
+        },
+        historyserver: {
+          domain:
+            data.historyserver?.domain || defaultConfig.historyserver.domain,
+          apiPath:
+            data.historyserver?.apiPath || defaultConfig.historyserver.apiPath,
+          proxyEndpoint:
+            data.historyserver?.proxyEndpoint ||
+            defaultConfig.historyserver.proxyEndpoint,
+        },
+        defaultNamespace:
+          data.defaultNamespace || defaultConfig.defaultNamespace,
       };
       return runtimeConfig;
     }
@@ -33,19 +42,45 @@ export async function fetchRuntimeConfig(): Promise<RuntimeConfig> {
     console.warn("Failed to fetch runtime config, using default:", error);
   }
 
-  // Fallback to default config
   runtimeConfig = defaultConfig;
   return runtimeConfig;
 }
 
 export const config = {
-  async getUrl(): Promise<string> {
+  async getRayApiUrl(): Promise<string> {
     const cfg = await fetchRuntimeConfig();
-    return cfg.url;
+    return `${cfg.apiserver.domain}${cfg.apiserver.rayApiPath}`;
   },
 
-  get url(): string {
-    return runtimeConfig?.url || defaultConfig.url;
+  async getCoreApiUrl(): Promise<string | undefined> {
+    const cfg = await fetchRuntimeConfig();
+    return cfg.apiserver.coreApiPath
+      ? `${cfg.apiserver.domain}${cfg.apiserver.coreApiPath}`
+      : undefined;
+  },
+  async getHistoryServerUrl() {
+    const cfg = await fetchRuntimeConfig();
+    return {
+      domain: cfg.historyserver.domain,
+      apiPath: cfg.historyserver.apiPath,
+      proxyEndpoint: cfg.historyserver.proxyEndpoint,
+    };
+  },
+
+  get rayApiUrl(): string {
+    if (runtimeConfig) {
+      return `${runtimeConfig.apiserver.domain}${runtimeConfig.apiserver.rayApiPath}`;
+    }
+    return `${defaultConfig.apiserver.domain}${defaultConfig.apiserver.rayApiPath}`;
+  },
+
+  get coreApiUrl(): string | undefined {
+    if (runtimeConfig?.apiserver.coreApiPath) {
+      return `${runtimeConfig.apiserver.domain}${runtimeConfig.apiserver.coreApiPath}`;
+    }
+    return defaultConfig.apiserver.coreApiPath
+      ? `${defaultConfig.apiserver.domain}${defaultConfig.apiserver.coreApiPath}`
+      : undefined;
   },
 };
 

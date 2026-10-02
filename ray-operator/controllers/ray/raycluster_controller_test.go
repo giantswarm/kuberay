@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,6 +49,15 @@ func rayClusterTemplate(name string, namespace string) *rayv1.RayCluster {
 		maxReplicas int32 = 4
 		replicas    int32 = 3
 	)
+	sharedMemVolume := corev1.Volume{
+		Name: "shared-mem",
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{
+				Medium:    corev1.StorageMediumMemory,
+				SizeLimit: new(resource.MustParse("1Gi")),
+			},
+		},
+	}
 	return &rayv1.RayCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -56,6 +67,7 @@ func rayClusterTemplate(name string, namespace string) *rayv1.RayCluster {
 			HeadGroupSpec: rayv1.HeadGroupSpec{
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
+						Volumes: []corev1.Volume{sharedMemVolume},
 						Containers: []corev1.Container{
 							{
 								Name:  "ray-head",
@@ -73,6 +85,7 @@ func rayClusterTemplate(name string, namespace string) *rayv1.RayCluster {
 					GroupName:   "small-group",
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
+							Volumes: []corev1.Volume{sharedMemVolume},
 							Containers: []corev1.Container{
 								{
 									Name:  "ray-worker",
@@ -85,6 +98,15 @@ func rayClusterTemplate(name string, namespace string) *rayv1.RayCluster {
 			},
 		},
 	}
+}
+
+func getRayContainerFromPod(pod *corev1.Pod) *corev1.Container {
+	for i := range pod.Spec.Containers {
+		if pod.Spec.Containers[i].Name == "ray-head" || pod.Spec.Containers[i].Name == "ray-worker" {
+			return &pod.Spec.Containers[i]
+		}
+	}
+	return nil
 }
 
 var _ = Context("Inside the default namespace", func() {
@@ -419,7 +441,7 @@ var _ = Context("Inside the default namespace", func() {
 		ctx := context.Background()
 		namespace := "default"
 		rayCluster := rayClusterTemplate("raycluster-autoscaler", namespace)
-		rayCluster.Spec.EnableInTreeAutoscaling = ptr.To(true)
+		rayCluster.Spec.EnableInTreeAutoscaling = new(true)
 		workerPods := corev1.PodList{}
 		workerFilter := common.RayClusterGroupPodsAssociationOptions(rayCluster, rayCluster.Spec.WorkerGroupSpecs[0].GroupName).ToListOptions()
 
@@ -860,7 +882,7 @@ var _ = Context("Inside the default namespace", func() {
 			ctx := context.Background()
 			namespace := "default"
 			rayCluster := rayClusterTemplate("raycluster-suspend-workergroup-autoscaler", namespace)
-			rayCluster.Spec.EnableInTreeAutoscaling = ptr.To(true)
+			rayCluster.Spec.EnableInTreeAutoscaling = new(true)
 			allPods := corev1.PodList{}
 			allFilters := common.RayClusterAllPodsAssociationOptions(rayCluster).ToListOptions()
 			workerFilters := common.RayClusterGroupPodsAssociationOptions(rayCluster, rayCluster.Spec.WorkerGroupSpecs[0].GroupName).ToListOptions()
@@ -911,7 +933,7 @@ var _ = Context("Inside the default namespace", func() {
 		rayCluster := rayClusterTemplate("raycluster-multihost", namespace)
 		numOfHosts := int32(4)
 		rayCluster.Spec.WorkerGroupSpecs[0].NumOfHosts = numOfHosts
-		rayCluster.Spec.EnableInTreeAutoscaling = ptr.To(true)
+		rayCluster.Spec.EnableInTreeAutoscaling = new(true)
 		headPods := corev1.PodList{}
 		headFilters := common.RayClusterHeadPodsAssociationOptions(rayCluster).ToListOptions()
 		numHeadPods := 1
@@ -919,6 +941,10 @@ var _ = Context("Inside the default namespace", func() {
 		workerPods := corev1.PodList{}
 		numWorkerPods := 3 * int(numOfHosts)
 		workerFilters := common.RayClusterGroupPodsAssociationOptions(rayCluster, rayCluster.Spec.WorkerGroupSpecs[0].GroupName).ToListOptions()
+
+		BeforeEach(func() {
+			features.SetFeatureGateDuringTest(GinkgoTB(), features.RayMultiHostIndexing, true)
+		})
 
 		It("Verify RayCluster spec", func() {
 			// These test are designed based on the following assumptions:
@@ -961,6 +987,60 @@ var _ = Context("Inside the default namespace", func() {
 
 			Eventually(
 				isAllPodsRunningByFilters).WithContext(ctx).WithArguments(workerPods, workerFilters).WithTimeout(time.Second*3).WithPolling(time.Millisecond*500).Should(BeTrue(), "All worker Pods should be running.")
+		})
+
+		It("All multi-host pods are properly labeled", func() {
+			type ReplicaInfo struct {
+				HostIndices  map[string]bool
+				ReplicaIndex string
+			}
+			replicaGroups := make(map[string]ReplicaInfo)
+			// Track replicas to ensure unique indices are applied.
+			seenReplicaIndices := make(map[string]bool)
+
+			for _, pod := range workerPods.Items {
+				// Get all the labels
+				hostIndex := pod.Labels[utils.RayHostIndexKey]
+				replicaID := pod.Labels[utils.RayWorkerReplicaNameKey]
+				replicaIndex := pod.Labels[utils.RayWorkerReplicaIndexKey]
+
+				Expect(replicaIndex).NotTo(BeEmpty(), "Pod %s is missing label %s", pod.Name, utils.RayWorkerReplicaIndexKey)
+				seenReplicaIndices[replicaIndex] = true
+
+				if info, ok := replicaGroups[replicaID]; ok {
+					// Validate replicaIndex is the same for all pods in this group.
+					Expect(replicaIndex).To(Equal(info.ReplicaIndex), "Pod %s in group %s has replicaIndex %s, but expected %s", pod.Name, replicaID, replicaIndex, info.ReplicaIndex)
+
+					// Ensure hostIndex is unique within this replica group.
+					Expect(info.HostIndices[hostIndex]).To(BeFalse(), "Pod %s in group %s has duplicate hostIndex %s", pod.Name, replicaID, hostIndex)
+					info.HostIndices[hostIndex] = true
+				} else {
+					replicaGroups[replicaID] = ReplicaInfo{
+						ReplicaIndex: replicaIndex,
+						HostIndices:  map[string]bool{hostIndex: true},
+					}
+				}
+
+				// Check hostIndex correctly set in range 0 to numOfHosts-1.
+				hostIndexInt, err := strconv.Atoi(hostIndex)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(hostIndexInt).To(BeNumerically("<", numOfHosts))
+				Expect(hostIndexInt).To(BeNumerically(">=", 0))
+			}
+
+			// Validate we created 'replicas' number of groups.
+			Expect(replicaGroups).To(HaveLen(int(replicas)), "Expected %d replica groups, but found %d", replicas, len(replicaGroups))
+
+			// Validate replica indices are unique and indexed from 0 to replicas-1.
+			Expect(seenReplicaIndices).To(HaveLen(int(replicas)), "Expected %d unique replica indices, but found %d", replicas, len(seenReplicaIndices))
+			Expect(seenReplicaIndices["0"]).To(BeTrue())
+			Expect(seenReplicaIndices["1"]).To(BeTrue())
+			Expect(seenReplicaIndices["2"]).To(BeTrue())
+
+			// Validate each replica group has 'numOfHosts' Pods.
+			for replicaID, info := range replicaGroups {
+				Expect(info.HostIndices).To(HaveLen(int(numOfHosts)), "Replica group %s expected %d hosts, but found %d", replicaID, numOfHosts, len(info.HostIndices))
+			}
 		})
 
 		It("RayCluster's .status.state transitions to 'ready' when all worker Pods are Running and check pod counts are correct", func() {
@@ -1414,6 +1494,224 @@ var _ = Context("Inside the default namespace", func() {
 			Eventually(
 				getResourceFunc(ctx, client.ObjectKey{Name: rayCluster.Name + "-headless", Namespace: namespace}, &svc),
 				time.Second*3, time.Millisecond*500).Should(Succeed())
+		})
+	})
+
+	Describe("RayCluster with custom probe ports", Ordered, func() {
+		ctx := context.Background()
+		namespace := "default"
+		rayClusterName := "raycluster-custom-probe-ports"
+
+		rayCluster := rayClusterTemplate(rayClusterName, namespace)
+
+		rayCluster.Spec.HeadGroupSpec.RayStartParams = map[string]string{
+			"dashboard-port":              "8365",
+			"dashboard-agent-listen-port": "8266",
+		}
+
+		rayCluster.Spec.WorkerGroupSpecs[0].RayStartParams = map[string]string{
+			"dashboard-agent-listen-port": "9000",
+		}
+
+		rayCluster.Spec.WorkerGroupSpecs[0].Replicas = ptr.To[int32](1)
+		rayCluster.Spec.WorkerGroupSpecs[0].MaxReplicas = ptr.To[int32](1)
+
+		headPods := corev1.PodList{}
+		workerPods := corev1.PodList{}
+		workerFilters := common.RayClusterGroupPodsAssociationOptions(rayCluster, rayCluster.Spec.WorkerGroupSpecs[0].GroupName).ToListOptions()
+		headFilters := common.RayClusterHeadPodsAssociationOptions(rayCluster).ToListOptions()
+
+		It("Verify RayCluster spec", func() {
+			Expect(rayCluster.Spec.HeadGroupSpec.RayStartParams["dashboard-port"]).To(Equal("8365"))
+			Expect(rayCluster.Spec.HeadGroupSpec.RayStartParams["dashboard-agent-listen-port"]).To(Equal("8266"))
+			Expect(rayCluster.Spec.WorkerGroupSpecs[0].RayStartParams["dashboard-agent-listen-port"]).To(Equal("9000"))
+			Expect(rayCluster.Spec.WorkerGroupSpecs).To(HaveLen(1))
+			Expect(rayCluster.Spec.WorkerGroupSpecs[0].Replicas).To(Equal(ptr.To[int32](1)))
+		})
+
+		It("Create a RayCluster custom resource", func() {
+			err := k8sClient.Create(ctx, rayCluster)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create RayCluster")
+			Eventually(
+				getResourceFunc(ctx, client.ObjectKey{Name: rayCluster.Name, Namespace: namespace}, rayCluster),
+				time.Second*3, time.Millisecond*500).Should(Succeed(), "Should be able to see RayCluster: %v", rayCluster.Name)
+		})
+
+		It("Check the number of head Pods", func() {
+			numHeadPods := 1
+			Eventually(
+				listResourceFunc(ctx, &headPods, headFilters...),
+				time.Second*3, time.Millisecond*500).Should(Equal(numHeadPods), fmt.Sprintf("headGroup %v", headPods.Items))
+		})
+
+		It("Check the number of worker Pods", func() {
+			numWorkerPods := 1
+			Eventually(
+				listResourceFunc(ctx, &workerPods, workerFilters...),
+				time.Second*3, time.Millisecond*500).Should(Equal(numWorkerPods), fmt.Sprintf("workerGroup %v", workerPods.Items))
+		})
+
+		It("Update all Pods to Running", func() {
+			for _, headPod := range headPods.Items {
+				headPod.Status.Phase = corev1.PodRunning
+				Expect(k8sClient.Status().Update(ctx, &headPod)).Should(Succeed())
+			}
+
+			Eventually(
+				isAllPodsRunningByFilters).WithContext(ctx).WithArguments(headPods, headFilters).WithTimeout(time.Second*3).WithPolling(time.Millisecond*500).Should(BeTrue(), "Head Pod should be running.")
+
+			for _, workerPod := range workerPods.Items {
+				workerPod.Status.Phase = corev1.PodRunning
+				Expect(k8sClient.Status().Update(ctx, &workerPod)).Should(Succeed())
+			}
+
+			Eventually(
+				isAllPodsRunningByFilters).WithContext(ctx).WithArguments(workerPods, workerFilters).WithTimeout(time.Second*3).WithPolling(time.Millisecond*500).Should(BeTrue(), "All worker Pods should be running.")
+		})
+
+		It("Should have head pod with correct probe configuration", func() {
+			Expect(headPods.Items).Should(HaveLen(1), "Should have exactly one head pod")
+			headPod := headPods.Items[0]
+
+			rayContainer := getRayContainerFromPod(&headPod)
+			Expect(rayContainer).NotTo(BeNil(), "Ray container should exist")
+
+			Expect(rayContainer.LivenessProbe).NotTo(BeNil(), "LivenessProbe should be configured")
+			Expect(rayContainer.LivenessProbe.Exec).NotTo(BeNil(), "LivenessProbe should use Exec")
+
+			livenessCommand := strings.Join(rayContainer.LivenessProbe.Exec.Command, " ")
+			Expect(livenessCommand).To(ContainSubstring(":8266"), "Head pod liveness probe should use custom dashboard-agent-listen-port")
+			Expect(livenessCommand).To(ContainSubstring(":8365"), "Head pod liveness probe should use custom dashboard-port")
+
+			Expect(rayContainer.ReadinessProbe).NotTo(BeNil(), "ReadinessProbe should be configured")
+			Expect(rayContainer.ReadinessProbe.Exec).NotTo(BeNil(), "ReadinessProbe should use Exec")
+
+			readinessCommand := strings.Join(rayContainer.ReadinessProbe.Exec.Command, " ")
+			Expect(readinessCommand).To(ContainSubstring(":8266"), "Head pod readiness probe should use custom dashboard-agent-listen-port")
+			Expect(readinessCommand).To(ContainSubstring(":8365"), "Head pod readiness probe should use custom dashboard-port")
+		})
+
+		It("Should have worker pod with correct probe configuration", func() {
+			Expect(workerPods.Items).Should(HaveLen(1), "Should have exactly one worker pod")
+			workerPod := workerPods.Items[0]
+
+			rayContainer := getRayContainerFromPod(&workerPod)
+			Expect(rayContainer).NotTo(BeNil(), "Ray container should exist")
+
+			Expect(rayContainer.LivenessProbe).NotTo(BeNil(), "LivenessProbe should be configured")
+			Expect(rayContainer.LivenessProbe.Exec).NotTo(BeNil(), "LivenessProbe should use Exec")
+
+			livenessCommand := strings.Join(rayContainer.LivenessProbe.Exec.Command, " ")
+			Expect(livenessCommand).To(ContainSubstring(":9000"), "Worker pod should use custom dashboard-agent-listen-port")
+			Expect(livenessCommand).NotTo(ContainSubstring(":8365"), "Worker pod should not check dashboard-port")
+
+			Expect(rayContainer.ReadinessProbe).NotTo(BeNil(), "ReadinessProbe should be configured")
+			Expect(rayContainer.ReadinessProbe.Exec).NotTo(BeNil(), "ReadinessProbe should use Exec")
+
+			readinessCommand := strings.Join(rayContainer.ReadinessProbe.Exec.Command, " ")
+			Expect(readinessCommand).To(ContainSubstring(":9000"), "Worker pod should use custom dashboard-agent-listen-port")
+			Expect(readinessCommand).NotTo(ContainSubstring(":8365"), "Worker pod should not check dashboard-port")
+		})
+
+		It("RayCluster's .status.state should be updated to 'ready' shortly after all Pods are Running", func() {
+			Eventually(
+				getClusterState(ctx, namespace, rayCluster.Name),
+				time.Second*3, time.Millisecond*500).Should(Equal(rayv1.Ready))
+		})
+	})
+
+	Describe("Manager cache Pod label selectors", Ordered, func() {
+		ctx := context.Background()
+		namespace := "ray-mgr-cache-test"
+		rayClusterName := "raycluster-cache-label-selectors"
+		unrelatedPodName := "unrelated-pod-for-cache-test"
+
+		rayCluster := rayClusterTemplate(rayClusterName, namespace)
+		rayCluster.Spec.WorkerGroupSpecs[0].Replicas = ptr.To[int32](1)
+		rayCluster.Spec.WorkerGroupSpecs[0].MaxReplicas = ptr.To[int32](1)
+		rayCluster.Spec.WorkerGroupSpecs[0].MinReplicas = ptr.To[int32](0)
+
+		unrelatedPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      unrelatedPodName,
+				Namespace: namespace,
+				Labels:    map[string]string{"app": "unrelated-to-ray"},
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:  "pause",
+						Image: support.GetRayImage(),
+					},
+				},
+			},
+		}
+
+		headPods := corev1.PodList{}
+		workerPods := corev1.PodList{}
+		workerFilters := common.RayClusterGroupPodsAssociationOptions(rayCluster, rayCluster.Spec.WorkerGroupSpecs[0].GroupName).ToListOptions()
+		headFilters := common.RayClusterHeadPodsAssociationOptions(rayCluster).ToListOptions()
+
+		BeforeAll(func() {
+			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
+			err := k8sClient.Create(ctx, ns)
+			if !apierrors.IsAlreadyExists(err) {
+				Expect(err).NotTo(HaveOccurred(), "create test namespace for cache selector test")
+			}
+		})
+
+		It("Create RayCluster and unrelated Pod", func() {
+			err := k8sClient.Create(ctx, rayCluster)
+			Expect(err).NotTo(HaveOccurred(), "create RayCluster")
+			Eventually(
+				getResourceFunc(ctx, client.ObjectKey{Name: rayCluster.Name, Namespace: namespace}, rayCluster),
+				time.Second*10, time.Millisecond*200).Should(Succeed())
+
+			err = k8sClient.Create(ctx, unrelatedPod)
+			Expect(err).NotTo(HaveOccurred(), "create unrelated pod")
+
+			Eventually(
+				listResourceFunc(ctx, &headPods, headFilters...),
+				time.Second*10, time.Millisecond*200).Should(Equal(1))
+			Eventually(
+				listResourceFunc(ctx, &workerPods, workerFilters...),
+				time.Second*10, time.Millisecond*200).Should(Equal(1))
+
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: unrelatedPodName}, unrelatedPod)).Should(Succeed())
+		})
+
+		It("The direct API client should list head, worker, and unrelated Pod", func() {
+			Eventually(
+				listResourceFunc(ctx, &headPods, headFilters...),
+				time.Second*3, time.Millisecond*200).Should(Equal(1))
+			Eventually(
+				listResourceFunc(ctx, &workerPods, workerFilters...),
+				time.Second*3, time.Millisecond*200).Should(Equal(1))
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: unrelatedPodName}, unrelatedPod)).Should(Succeed(), "unrelated pod visible to API")
+		})
+
+		It("The manager cache should only include Ray node Pods (ray.io/node-type in head|worker|redis-cleanup), not the unrelated Pod", func() {
+			cacheClient := mgr.GetClient()
+			clusterListOpts := []client.ListOption{
+				client.InNamespace(namespace),
+				client.MatchingLabels{utils.RayClusterLabelKey: rayClusterName},
+			}
+			Eventually(func(g Gomega) {
+				var cachedRayPods corev1.PodList
+				g.Expect(cacheClient.List(ctx, &cachedRayPods, clusterListOpts...)).To(Succeed())
+				var names []string
+				for _, p := range cachedRayPods.Items {
+					names = append(names, p.Name)
+					g.Expect(p.Labels[utils.RayNodeTypeLabelKey]).To(Or(
+						Equal(string(rayv1.HeadNode)),
+						Equal(string(rayv1.WorkerNode)),
+						Equal(string(rayv1.RedisCleanupNode)),
+					), "informer only watches Pods with a Ray node type; pod %q has labels %v", p.Name, p.Labels)
+				}
+				g.Expect(names).To(ContainElements(headPods.Items[0].Name, workerPods.Items[0].Name), "cache should list this cluster's Ray head and worker: got %v", names)
+				g.Expect(names).NotTo(ContainElement(unrelatedPodName), "unrelated pod must not appear in the manager's Pod store; got: %v", names)
+				g.Expect(cachedRayPods.Items).To(HaveLen(2), "this RayCluster has one head and one worker Pod in cache")
+			}, time.Second*10, time.Millisecond*300).Should(Succeed(), "wait for the manager informer to sync listed Pods")
 		})
 	})
 })

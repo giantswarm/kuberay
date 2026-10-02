@@ -12,21 +12,19 @@ import (
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 	batchv1 "k8s.io/api/batch/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	k8szap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	configapi "github.com/ray-project/kuberay/ray-operator/apis/config/v1alpha1"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
@@ -34,6 +32,7 @@ import (
 	"github.com/ray-project/kuberay/ray-operator/controllers/ray/batchscheduler"
 	"github.com/ray-project/kuberay/ray-operator/controllers/ray/metrics"
 	"github.com/ray-project/kuberay/ray-operator/controllers/ray/utils"
+	"github.com/ray-project/kuberay/ray-operator/internal/managercache"
 	"github.com/ray-project/kuberay/ray-operator/pkg/features"
 	webhooks "github.com/ray-project/kuberay/ray-operator/pkg/webhooks/v1"
 )
@@ -191,6 +190,10 @@ func main() {
 	}
 	features.LogFeatureGates(setupLog)
 
+	if features.Enabled(features.RayServiceIncrementalUpgrade) {
+		utilruntime.Must(gwv1.Install(scheme))
+	}
+
 	// Manager options
 	options := ctrl.Options{
 		Cache: cache.Options{
@@ -210,11 +213,12 @@ func main() {
 	// Set the informers label selectors to narrow the scope of the resources being watched and cached.
 	// This improves the scalability of the system, both for KubeRay itself by reducing the size of the
 	// informers cache, and for the API server / etcd, by reducing the number of watch events.
-	// For example, KubeRay is only interested in the batch Jobs it creates when reconciling RayJobs,
-	// so the controller sets the app.kubernetes.io/created-by=kuberay-operator label on any Job it creates,
-	// and that label is provided to the manager cache as a selector for Job resources.
-	selectorsByObject, err := cacheSelectors()
-	exitOnError(err, "unable to create cache selectors")
+	// For example, KubeRay is only interested in:
+	// - the batch Jobs it creates when reconciling RayJobs (app.kubernetes.io/created-by=kuberay-operator), and
+	// - Ray-managed Pods (ray.io/node-type in head|worker|redis-cleanup).
+	// These labels are provided to the manager cache as selectors for Job and Pod resources.
+	selectorsByObject, err := managercache.K8sControllerRuntimeCacheSelectors()
+	exitOnError(err, "unable to build manager cache ByObject")
 	options.Cache.ByObject = selectorsByObject
 
 	if watchNamespaces := strings.Split(config.WatchNamespace, ","); len(watchNamespaces) == 1 { // It is not possible for len(watchNamespaces) == 0 to be true. The length of `strings.Split("", ",")` is still 1.
@@ -261,14 +265,22 @@ func main() {
 	exitOnError(err, "unable to create batch scheduler manager")
 	batchSchedulerManager.AddToScheme(mgr.GetScheme())
 
+	// TODO: Remove isOpenShift and related reconciler options once Gateway API support is mature
+	// and Route-based dashboard access is no longer needed.
+	// See: https://github.com/ray-project/kuberay/pull/4365#issuecomment-4143407845
+	isOpenShift, err := utils.IsOpenShiftCluster(restConfig)
+	exitOnError(err, "unable to detect cluster type (OpenShift vs Kubernetes)")
+
 	rayClusterOptions := ray.RayClusterReconcilerOptions{
 		HeadSidecarContainers:    config.HeadSidecarContainers,
 		WorkerSidecarContainers:  config.WorkerSidecarContainers,
-		IsOpenShift:              utils.GetClusterType(),
+		IsOpenShift:              isOpenShift,
+		UseIngressOnOpenShift:    utils.ShouldUseIngressOnOpenShift(),
 		RayClusterMetricsManager: rayClusterMetricsManager,
 		BatchSchedulerManager:    batchSchedulerManager,
+		DefaultContainerEnvs:     config.DefaultContainerEnvs,
 	}
-	exitOnError(ray.NewReconciler(ctx, mgr, rayClusterOptions).SetupWithManager(mgr, config.ReconcileConcurrency),
+	exitOnError(ray.NewReconciler(mgr, rayClusterOptions).SetupWithManager(mgr, config.ReconcileConcurrency),
 		"unable to create controller", "controller", "RayCluster")
 
 	exitOnError(ray.NewRayServiceReconciler(ctx, mgr, config).SetupWithManager(mgr, config.ReconcileConcurrency),
@@ -285,6 +297,14 @@ func main() {
 		exitOnError(webhooks.SetupRayClusterWebhookWithManager(mgr),
 			"unable to create webhook", "webhook", "RayCluster")
 	}
+
+	if features.Enabled(features.RayCronJob) {
+		setupLog.Info("RayCronJob feature gate is enabled, starting RayCronJob controller")
+		exitOnError(ray.NewRayCronJobReconciler(mgr).SetupWithManager(mgr, config.ReconcileConcurrency),
+			"unable to create controller", "controller", "RayCronJob")
+	} else {
+		setupLog.Info("RayCronJob feature gate is disabled, skipping RayCronJob controller setup")
+	}
 	// +kubebuilder:scaffold:builder
 
 	exitOnError(mgr.AddHealthzCheck("healthz", healthz.Ping), "unable to set up health check")
@@ -294,19 +314,7 @@ func main() {
 	exitOnError(mgr.Start(ctx), "problem running manager")
 }
 
-func cacheSelectors() (map[client.Object]cache.ByObject, error) {
-	label, err := labels.NewRequirement(utils.KubernetesCreatedByLabelKey, selection.Equals, []string{utils.ComponentName})
-	if err != nil {
-		return nil, err
-	}
-	selector := labels.NewSelector().Add(*label)
-
-	return map[client.Object]cache.ByObject{
-		&batchv1.Job{}: {Label: selector},
-	}, nil
-}
-
-func exitOnError(err error, msg string, keysAndValues ...interface{}) {
+func exitOnError(err error, msg string, keysAndValues ...any) {
 	if err != nil {
 		setupLog.Error(err, msg, keysAndValues...)
 		os.Exit(1)

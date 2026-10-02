@@ -44,12 +44,12 @@ export interface JobRow {
   createdAt: Date;
   message: string;
   links: {
-    rayHeadDashboardLink: string;
+    rayHeadDashboardLink?: string;
     rayGrafanaDashboardLink?: string;
     logsLink?: string;
   };
   rayClusterName: string;
   submissionMode: string;
   rayVersion: string;
-  clusterSpec: RayClusterSpec;
+  clusterSpec?: RayClusterSpec;
 }
