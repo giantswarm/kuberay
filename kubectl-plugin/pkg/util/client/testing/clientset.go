@@ -3,7 +3,7 @@ package testing
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 
-	rayClientFake "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/fake"
+	rayClientFake "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned/fake"
 )
 
 // NewRayClientset creates a fake Ray clientset with FieldSelector support.

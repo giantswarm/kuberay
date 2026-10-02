@@ -4,9 +4,9 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
-	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
-	rayv1 "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/typed/ray/v1"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
+	rayclient "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned/typed/ray/v1"
 )
 
 //go:generate mockgen -source=cluster.go -destination=cluster_mock.go -package=client

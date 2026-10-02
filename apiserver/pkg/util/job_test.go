@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/ray-project/kuberay/proto/go_client"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 var apiJobNewCluster = &api.RayJob{

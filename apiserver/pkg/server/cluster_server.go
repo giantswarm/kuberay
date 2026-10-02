@@ -7,10 +7,10 @@ import (
 	eventsv1 "k8s.io/api/events/v1"
 	klog "k8s.io/klog/v2"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/manager"
-	"github.com/ray-project/kuberay/apiserver/pkg/model"
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
-	api "github.com/ray-project/kuberay/proto/go_client"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/manager"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/model"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 type ClusterServerOptions struct {

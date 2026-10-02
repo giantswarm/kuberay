@@ -5,8 +5,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kubetesting "k8s.io/client-go/testing"
 
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	rayClientFake "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/fake"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
+	rayClientFake "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned/fake"
 )
 
 // AddRayClusterFieldSelectorReactor adds a reactor to the fake Ray client that

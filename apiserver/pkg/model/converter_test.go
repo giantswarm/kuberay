@@ -12,10 +12,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	util "github.com/ray-project/kuberay/apiserver/pkg/util"
-	api "github.com/ray-project/kuberay/proto/go_client"
-	rayv1api "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	"github.com/ray-project/kuberay/ray-operator/controllers/ray/utils"
+	util "github.com/ray-project/kuberay/v2/apiserver/pkg/util"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
+	rayv1api "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
+	"github.com/ray-project/kuberay/v2/ray-operator/controllers/ray/utils"
 )
 
 var (

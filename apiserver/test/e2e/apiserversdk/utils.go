@@ -7,7 +7,7 @@ import (
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/meta"
 
-	rayv1api "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
+	rayv1api "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
 )
 
 var testPollingInterval = 500 * time.Millisecond

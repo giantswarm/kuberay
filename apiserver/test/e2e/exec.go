@@ -21,9 +21,9 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	kuberayHTTP "github.com/ray-project/kuberay/apiserver/pkg/http"
-	"github.com/ray-project/kuberay/apiserver/pkg/manager"
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
+	kuberayHTTP "github.com/ray-project/kuberay/v2/apiserver/pkg/http"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/manager"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
 )
 
 // RemoteExecuteClient allows executing HTTP requests against a service running inside a Kubernetes pod

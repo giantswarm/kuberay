@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
 )
 
 func TestRelevantRayClusterCondition(t *testing.T) {

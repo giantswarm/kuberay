@@ -13,11 +13,11 @@ import (
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/util"
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/util/client"
-	clienttesting "github.com/ray-project/kuberay/kubectl-plugin/pkg/util/client/testing"
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	rayClientFake "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/fake"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util/client"
+	clienttesting "github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util/client/testing"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
+	rayClientFake "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned/fake"
 )
 
 func TestRayResourceTypeCompletionFunc(t *testing.T) {

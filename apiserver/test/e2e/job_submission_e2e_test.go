@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	api "github.com/ray-project/kuberay/proto/go_client"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 func TestCreateJobSubmission(t *testing.T) {

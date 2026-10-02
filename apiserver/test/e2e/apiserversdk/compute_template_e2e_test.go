@@ -8,8 +8,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
-	api "github.com/ray-project/kuberay/proto/go_client"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 // TestComputeTemplateMiddleware tests that the middleware correctly applies compute template

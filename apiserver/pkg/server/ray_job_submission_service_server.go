@@ -17,11 +17,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/yaml"
 
-	api "github.com/ray-project/kuberay/proto/go_client"
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	"github.com/ray-project/kuberay/ray-operator/controllers/ray/utils"
-	"github.com/ray-project/kuberay/ray-operator/controllers/ray/utils/dashboardclient"
-	utiltypes "github.com/ray-project/kuberay/ray-operator/controllers/ray/utils/types"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
+	"github.com/ray-project/kuberay/v2/ray-operator/controllers/ray/utils"
+	"github.com/ray-project/kuberay/v2/ray-operator/controllers/ray/utils/dashboardclient"
+	utiltypes "github.com/ray-project/kuberay/v2/ray-operator/controllers/ray/utils/types"
 )
 
 type RayJobSubmissionServiceServerOptions struct {

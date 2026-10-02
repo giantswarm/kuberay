@@ -13,8 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	api "github.com/ray-project/kuberay/proto/go_client"
-	rayv1api "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
+	rayv1api "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
 )
 
 type RayCluster struct {

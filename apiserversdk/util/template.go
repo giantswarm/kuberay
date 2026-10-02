@@ -12,10 +12,10 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/manager"
-	"github.com/ray-project/kuberay/apiserver/pkg/model"
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
-	api "github.com/ray-project/kuberay/proto/go_client"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/manager"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/model"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 // compute_template_middleware.go

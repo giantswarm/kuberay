@@ -3,7 +3,7 @@ package model
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	api "github.com/ray-project/kuberay/proto/go_client"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 func PopulateVolumes(podTemplate *corev1.PodTemplateSpec) []*api.Volume {

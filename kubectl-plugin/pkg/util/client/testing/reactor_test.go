@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	rayClientFake "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/fake"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
+	rayClientFake "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned/fake"
 )
 
 func TestAddRayClusterListFieldSelectorReactor(t *testing.T) {

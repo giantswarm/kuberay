@@ -1,4 +1,4 @@
-module github.com/ray-project/kuberay
+module github.com/ray-project/kuberay/v2
 
 go 1.26.0
 

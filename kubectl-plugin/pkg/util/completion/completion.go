@@ -11,8 +11,8 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/util/completion"
 
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/util"
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/util/client"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util/client"
 )
 
 // RayResourceTypeCompletionFunc Returns a completion function that completes the Ray resource type.

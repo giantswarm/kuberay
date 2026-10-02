@@ -15,9 +15,9 @@ import (
 	kubeFake "k8s.io/client-go/kubernetes/fake"
 	kubetesting "k8s.io/client-go/testing"
 
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/util"
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	rayClientFake "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/fake"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
+	rayClientFake "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned/fake"
 )
 
 func TestGetKubeRayOperatorVersion(t *testing.T) {

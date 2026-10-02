@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
-	api "github.com/ray-project/kuberay/proto/go_client"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 // ValidateClusterSpec validates that the *api.ClusterSpec is not nil and

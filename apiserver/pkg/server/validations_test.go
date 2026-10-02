@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/server"
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
-	api "github.com/ray-project/kuberay/proto/go_client"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/server"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 func TestValidateClusterSpec(t *testing.T) {

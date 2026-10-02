@@ -13,13 +13,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/client"
-	"github.com/ray-project/kuberay/apiserver/pkg/manager"
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
-	api "github.com/ray-project/kuberay/proto/go_client"
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	utiltypes "github.com/ray-project/kuberay/ray-operator/controllers/ray/utils/types"
-	fakeclientset "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/fake"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/client"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/manager"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
+	utiltypes "github.com/ray-project/kuberay/v2/ray-operator/controllers/ray/utils/types"
+	fakeclientset "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned/fake"
 )
 
 func TestGetRayClusterURL(t *testing.T) {

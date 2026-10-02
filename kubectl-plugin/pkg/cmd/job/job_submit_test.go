@@ -16,9 +16,9 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 
-	pluginclient "github.com/ray-project/kuberay/kubectl-plugin/pkg/util/client"
-	clienttesting "github.com/ray-project/kuberay/kubectl-plugin/pkg/util/client/testing"
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
+	pluginclient "github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util/client"
+	clienttesting "github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util/client/testing"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
 )
 
 func TestRayJobSubmitComplete(t *testing.T) {

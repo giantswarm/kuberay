@@ -26,11 +26,11 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/manager"
-	apiserverutil "github.com/ray-project/kuberay/apiserversdk/util"
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	rayutil "github.com/ray-project/kuberay/ray-operator/controllers/ray/utils"
-	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/typed/ray/v1"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/manager"
+	apiserverutil "github.com/ray-project/kuberay/v2/apiserversdk/util"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
+	rayutil "github.com/ray-project/kuberay/v2/ray-operator/controllers/ray/utils"
+	rayclient "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned/typed/ray/v1"
 )
 
 var (

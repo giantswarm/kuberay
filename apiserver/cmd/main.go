@@ -26,13 +26,13 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/interceptor"
-	"github.com/ray-project/kuberay/apiserver/pkg/manager"
-	"github.com/ray-project/kuberay/apiserver/pkg/server"
-	"github.com/ray-project/kuberay/apiserver/pkg/swagger"
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
-	"github.com/ray-project/kuberay/apiserversdk"
-	api "github.com/ray-project/kuberay/proto/go_client"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/interceptor"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/manager"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/server"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/swagger"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
+	"github.com/ray-project/kuberay/v2/apiserversdk"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 var (

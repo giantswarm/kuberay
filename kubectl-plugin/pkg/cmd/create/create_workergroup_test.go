@@ -12,8 +12,8 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/utils/ptr"
 
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/util"
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
 )
 
 func TestCreateWorkerGroupSpec(t *testing.T) {

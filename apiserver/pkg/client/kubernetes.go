@@ -7,7 +7,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
 )
 
 //go:generate mockgen -source=kubernetes.go -destination=kubernetes_mock.go -package=client

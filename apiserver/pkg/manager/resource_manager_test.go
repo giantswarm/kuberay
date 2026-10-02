@@ -11,8 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/client"
-	api "github.com/ray-project/kuberay/proto/go_client"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/client"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 func TestPopulateComputeTemplate(t *testing.T) {

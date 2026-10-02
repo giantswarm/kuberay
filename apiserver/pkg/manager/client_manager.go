@@ -3,8 +3,8 @@ package manager
 import (
 	"k8s.io/klog/v2"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/client"
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/client"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
 )
 
 //go:generate mockgen -source=client_manager.go -destination=client_manager_mock.go -package=manager

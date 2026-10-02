@@ -8,14 +8,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/cmd/create"
-	kubectlraydelete "github.com/ray-project/kuberay/kubectl-plugin/pkg/cmd/delete"
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/cmd/get"
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/cmd/job"
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/cmd/log"
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/cmd/scale"
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/cmd/session"
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/cmd/version"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/cmd/create"
+	kubectlraydelete "github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/cmd/delete"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/cmd/get"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/cmd/job"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/cmd/log"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/cmd/scale"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/cmd/session"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/cmd/version"
 )
 
 func init() {

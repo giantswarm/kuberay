@@ -12,7 +12,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 
-	clientfake "github.com/ray-project/kuberay/kubectl-plugin/pkg/util/client/fake"
+	clientfake "github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util/client/fake"
 )
 
 func createBuildInfo(revision, time string) *debug.BuildInfo {

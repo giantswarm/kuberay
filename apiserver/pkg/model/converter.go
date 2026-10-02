@@ -12,10 +12,10 @@ import (
 	eventsv1 "k8s.io/api/events/v1"
 	klog "k8s.io/klog/v2"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/util"
-	api "github.com/ray-project/kuberay/proto/go_client"
-	rayv1api "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	pkgutils "github.com/ray-project/kuberay/ray-operator/pkg/utils"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/util"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
+	rayv1api "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
+	pkgutils "github.com/ray-project/kuberay/v2/ray-operator/pkg/utils"
 )
 
 // Default annotations used by Ray nodes

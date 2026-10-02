@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyz0123456789"

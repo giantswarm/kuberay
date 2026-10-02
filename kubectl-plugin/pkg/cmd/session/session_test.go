@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/util"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util"
 )
 
 func TestCompleteFoo(t *testing.T) {

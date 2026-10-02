@@ -8,8 +8,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	client "github.com/ray-project/kuberay/apiserver/pkg/client"
-	util "github.com/ray-project/kuberay/apiserver/pkg/util"
+	client "github.com/ray-project/kuberay/v2/apiserver/pkg/client"
+	util "github.com/ray-project/kuberay/v2/apiserver/pkg/util"
 )
 
 // MockClientManagerInterface is a mock of ClientManagerInterface interface.

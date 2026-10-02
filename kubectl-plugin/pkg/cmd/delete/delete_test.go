@@ -9,7 +9,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/util"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/util"
 )
 
 func TestComplete(t *testing.T) {

@@ -12,8 +12,8 @@ import (
 	rpcStatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	apiserversdkutil "github.com/ray-project/kuberay/apiserversdk/util"
-	api "github.com/ray-project/kuberay/proto/go_client"
+	apiserversdkutil "github.com/ray-project/kuberay/v2/apiserversdk/util"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 type KuberayAPIServerClient struct {

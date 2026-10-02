@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	kuberayHTTP "github.com/ray-project/kuberay/apiserver/pkg/http"
-	api "github.com/ray-project/kuberay/proto/go_client"
+	kuberayHTTP "github.com/ray-project/kuberay/v2/apiserver/pkg/http"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
 )
 
 // TestCreateTemplate sequentially iterates over the create compute endpoint

@@ -22,11 +22,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	kuberayHTTP "github.com/ray-project/kuberay/apiserver/pkg/http"
-	"github.com/ray-project/kuberay/apiserversdk/util"
-	api "github.com/ray-project/kuberay/proto/go_client"
-	rayv1api "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
-	rayv1 "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/typed/ray/v1"
+	kuberayHTTP "github.com/ray-project/kuberay/v2/apiserver/pkg/http"
+	"github.com/ray-project/kuberay/v2/apiserversdk/util"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
+	rayv1api "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
+	rayv1 "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned/typed/ray/v1"
 )
 
 // GenericEnd2EndTest struct allows for reuse in setting up and running tests

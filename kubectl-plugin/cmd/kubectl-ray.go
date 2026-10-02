@@ -6,7 +6,7 @@ import (
 	flag "github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 
-	"github.com/ray-project/kuberay/kubectl-plugin/pkg/cmd"
+	"github.com/ray-project/kuberay/v2/kubectl-plugin/pkg/cmd"
 )
 
 func main() {

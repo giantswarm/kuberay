@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1 "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned/typed/ray/v1"
+	v1 "github.com/ray-project/kuberay/v2/ray-operator/pkg/client/clientset/versioned/typed/ray/v1"
 )
 
 // MockClusterClientInterface is a mock of ClusterClientInterface interface.

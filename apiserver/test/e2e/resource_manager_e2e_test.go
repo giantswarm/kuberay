@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ray-project/kuberay/apiserver/pkg/manager"
-	api "github.com/ray-project/kuberay/proto/go_client"
-	rayv1api "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
+	"github.com/ray-project/kuberay/v2/apiserver/pkg/manager"
+	api "github.com/ray-project/kuberay/v2/proto/go_client"
+	rayv1api "github.com/ray-project/kuberay/v2/ray-operator/apis/ray/v1"
 )
 
 func TestResourceManagerCreateCluster(t *testing.T) {
