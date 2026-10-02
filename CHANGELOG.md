@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-02
+
 ### Changed
 
 - **Breaking:** `metrics.serviceMonitor.selector` is renamed to `metrics.serviceMonitor.additionalLabels`, and empty labels are no longer emitted ([ray-project/kuberay#4979](https://github.com/ray-project/kuberay/pull/4979)). Update any values file that sets it.
@@ -49,7 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Create first GS artifact.
 
-[Unreleased]: https://github.com/giantswarm/kuberay/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/giantswarm/kuberay/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/giantswarm/kuberay/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/giantswarm/kuberay/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/giantswarm/kuberay/releases/tag/v1.0.0
 
