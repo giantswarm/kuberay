@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The `application.giantswarm.io/team` label rendered empty on every object in 1.2.0. The `architect` orb bump to 10.x rewrites `Chart.yaml` annotations and keeps only the `io.giantswarm.*` and `artifacthub.io/*` keys, so the annotation the label template read was no longer in the published chart. It now reads `io.giantswarm.application.team`.
+- Regenerated the devctl workflows. `zz_generated.create_release.yaml` still matched the legacy `Release vX.Y.Z` commit subject, while release PRs are titled `chore(release): vX.Y.Z`, so merging a release PR created no tag and no release.
+
 ## [1.2.0] - 2026-10-02
 
 ### Changed
